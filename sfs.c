@@ -47,7 +47,7 @@
  * Changed in version 2.6
  */
 
-//testing stuff
+//testing more stuff
 
 char * test = "\n\n  stuff \n more   \n\n";
 void *sfs_init(struct fuse_conn_info *conn)
