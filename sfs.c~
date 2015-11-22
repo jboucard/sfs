@@ -4,7 +4,8 @@
   This code is derived from function prototypes found /usr/include/fuse/fuse.h
   Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
   His code is licensed under the LGPLv2.
-
+dwdwwdwda
+dwadd
 */
 
 #include "params.h"
@@ -47,7 +48,9 @@
  * Changed in version 2.6
  */
 
-char * test = "\n\n  stuff   \n\n";
+//testing more stuff
+
+char * test = "\n\n  stuff \n more   \n\n";
 void *sfs_init(struct fuse_conn_info *conn)
 {
     fprintf(stderr, "in bb-init\n");
