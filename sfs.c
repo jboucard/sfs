@@ -4,7 +4,8 @@
   This code is derived from function prototypes found /usr/include/fuse/fuse.h
   Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
   His code is licensed under the LGPLv2.
-
+dwdwwdwda
+dwadd
 */
 
 #include "params.h"
