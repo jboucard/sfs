@@ -10,7 +10,6 @@ dwadd
 
 #include "params.h"
 #include "block.h"
-
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
@@ -30,7 +29,6 @@ dwadd
 
 #include "log.h"
 
-
 ///////////////////////////////////////////////////////////
 //
 // Prototypes for all these functions, and the C-style comments,
@@ -48,18 +46,16 @@ dwadd
  * Changed in version 2.6
  */
 
-//testing more stuff
-//more changes...
-//even more changes... 
-
-char * test = "\n\n  stuff \n more   \n\n";
 void *sfs_init(struct fuse_conn_info *conn)
-{
+{	
+
+
     fprintf(stderr, "in bb-init\n");
     log_msg("\nsfs_init()\n");
-    
-    log_msg("%s", test);
+    disk_open(rootPath);
 
+    disk_close();
+     
     log_conn(conn);
     log_fuse_context(fuse_get_context());
 
@@ -91,6 +87,7 @@ int sfs_getattr(const char *path, struct stat *statbuf)
     
     log_msg("\nsfs_getattr(path=\"%s\", statbuf=0x%08x)\n",
 	  path, statbuf);
+    
     
     return retstat;
 }

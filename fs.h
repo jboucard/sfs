@@ -2,6 +2,8 @@
 #define _FS_H_
 
 
+const char * diskFilePath= "/.autofs/ilab/ilab_users/jmk480/Desktop/assignment2/example/testfsfile";
+
 #define N_BLOCKS 12
 struct fs_inode {
 	uint16_t  mode; //File Mode
@@ -31,6 +33,15 @@ struct fs_inode {
 	struct mutex lock;
 	
 	};
+
+struct dir_entry{
+	uint32_t inode; //inode #
+	uint16_t rec_len;
+	uint8_t name_len=255; //name length
+	uint8_t file_type;
+	char name[name_len]; //file name
+	};
+
 
 struct fs_super_block {
 	uint32_t s_inodes_count; //Inodes count
