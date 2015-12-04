@@ -28,7 +28,7 @@ dwadd
 #endif
 
 #include "log.h"
-
+#include "fs.h"
 ///////////////////////////////////////////////////////////
 //
 // Prototypes for all these functions, and the C-style comments,
@@ -48,12 +48,12 @@ dwadd
 
 void *sfs_init(struct fuse_conn_info *conn)
 {	
-
+	
 
     fprintf(stderr, "in bb-init\n");
     log_msg("\nsfs_init()\n");
-    disk_open(rootPath);
-
+    disk_open(diskFilePath);
+    //c
     disk_close();
      
     log_conn(conn);
