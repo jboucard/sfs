@@ -4,12 +4,12 @@
   This code is derived from function prototypes found /usr/include/fuse/fuse.h
   Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
   His code is licensed under the LGPLv2.
-
+dwdwwdwda
+dwadd
 */
 
 #include "params.h"
 #include "block.h"
-
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
@@ -28,8 +28,7 @@
 #endif
 
 #include "log.h"
-
-
+#include "fs.h"
 ///////////////////////////////////////////////////////////
 //
 // Prototypes for all these functions, and the C-style comments,
@@ -47,14 +46,16 @@
  * Changed in version 2.6
  */
 
-char * test = "\n\n  stuff   \n\n";
 void *sfs_init(struct fuse_conn_info *conn)
-{
+{	
+	
+
     fprintf(stderr, "in bb-init\n");
     log_msg("\nsfs_init()\n");
-    
-    log_msg("%s", test);
-
+    disk_open(rootPath);
+    //c
+    disk_close();
+     
     log_conn(conn);
     log_fuse_context(fuse_get_context());
 
@@ -86,6 +87,7 @@ int sfs_getattr(const char *path, struct stat *statbuf)
     
     log_msg("\nsfs_getattr(path=\"%s\", statbuf=0x%08x)\n",
 	  path, statbuf);
+    
     
     return retstat;
 }
