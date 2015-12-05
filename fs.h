@@ -4,8 +4,11 @@
 
 #define diskFilePath "/.autofs/ilab/ilab_users/jmk480/Desktop/assignment2/example/testfsfile"
 
+#define INODES 120 
 #define N_BLOCKS 12
+#define DATABLOCKS INODES * N_BLOCKS
 #define NAME_LEN 255
+
 struct fs_inode {
 	uint16_t  mode; //File Mode
 	uint16_t  uid;  //Owner user id
@@ -63,5 +66,21 @@ struct fs_super_block {
 	uint16_t s_def_resuid; //Default uid for reserved blocks
 	uint16_t s_def_resgid; //Default gid for reserved blocks
 };
+
+
+
+struct DataBlockArray {
+	unsigned int bit : 1;
+};
+
+typedef struct {
+	struct DataBlockArray DataBlockBM[DATABLOCKS];
+} BitArray; 
+
+
+
+
+
+
 
 #endif
