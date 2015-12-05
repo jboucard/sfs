@@ -69,13 +69,19 @@ struct fs_super_block {
 
 
 
+
+
 struct DataBlockArray {
 	unsigned int bit : 1;
 };
 
 typedef struct {
 	struct DataBlockArray DataBlockBM[DATABLOCKS];
-} BitArray; 
+} DataBlockBitMap; 
+
+typedef struct {
+	struct DataBlockArray InodeBM[INODES];
+} InodeBitMap; 
 
 
 
