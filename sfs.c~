@@ -10,7 +10,6 @@ dwadd
 
 #include "params.h"
 #include "block.h"
-
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
@@ -23,14 +22,14 @@ dwadd
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <stdbool.h>
 
 #ifdef HAVE_SYS_XATTR_H
 #include <sys/xattr.h>
 #endif
 
 #include "log.h"
-
-
+#include "fs.h"
 ///////////////////////////////////////////////////////////
 //
 // Prototypes for all these functions, and the C-style comments,
@@ -47,17 +46,42 @@ dwadd
  * Introduced in version 2.3
  * Changed in version 2.6
  */
-
-//testing more stuff
-
-char * test = "\n\n  stuff \n more   \n\n";
+BitArray test;
 void *sfs_init(struct fuse_conn_info *conn)
-{
+{	
+	
+    int i;
     fprintf(stderr, "in bb-init\n");
     log_msg("\nsfs_init()\n");
-    
-    log_msg("%s", test);
 
+     
+    for(i=0; i<= DATABLOCKS; i++)
+    {
+	log_msg("val of test %d is: %d\n", i, test.DataBlockBM[i].bit);
+    }
+    log_msg("\n \n");
+    int check = checkBitMapPos(399);
+    if(check == 0)
+    {
+	changeBitMapPos(742);
+    }
+    log_msg("\n \n");
+    
+    log_msg("val of test 741 is: %d\n", test.DataBlockBM[741].bit);
+    log_msg("val of test 742 is: %d\n", test.DataBlockBM[742].bit);
+    log_msg("val of test 743 is: %d\n", test.DataBlockBM[743].bit);
+	/*
+    for(i=0; i<= DATABLOCKS; i++)
+    {
+	test.DataBlockBM[i].bit = 1;
+	log_msg("val of test %d is: %d\n", i, test.DataBlockBM[i].bit);
+    }	*/
+	
+
+    disk_open(diskFilePath);
+    //c
+    disk_close();
+     
     log_conn(conn);
     log_fuse_context(fuse_get_context());
 
@@ -89,6 +113,7 @@ int sfs_getattr(const char *path, struct stat *statbuf)
     
     log_msg("\nsfs_getattr(path=\"%s\", statbuf=0x%08x)\n",
 	  path, statbuf);
+    
     
     return retstat;
 }
@@ -318,6 +343,33 @@ void sfs_usage()
     fprintf(stderr, "usage:  sfs [FUSE and mount options] diskFile mountPoint\n");
     abort();
 }
+
+
+
+
+
+int checkBitMapPos(int pos)
+{
+   log_msg("Checking the value of position %d\n", pos);
+   if((test.DataBlockBM[pos].bit)==1)
+   {
+	return 1;
+   }else
+   {
+ 	return 0;	
+   }
+}
+
+void changeBitMapPos(int pos)
+{
+   log_msg("Changing the value of position %d to 1\n", pos);
+   test.DataBlockBM[pos].bit = 1;
+   
+}
+
+
+
+
 
 int main(int argc, char *argv[])
 {
