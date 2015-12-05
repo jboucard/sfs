@@ -46,7 +46,7 @@ dwadd
  * Introduced in version 2.3
  * Changed in version 2.6
  */
-BitArray test;
+DataBlockBitMap test;
 void *sfs_init(struct fuse_conn_info *conn)
 {	
 	
@@ -54,13 +54,13 @@ void *sfs_init(struct fuse_conn_info *conn)
     fprintf(stderr, "in bb-init\n");
     log_msg("\nsfs_init()\n");
 
-     
+    log_msg("size of dir ent %d\n", sizeof(struct dir_entry)); 
     for(i=0; i<= DATABLOCKS; i++)
     {
 	log_msg("val of test %d is: %d\n", i, test.DataBlockBM[i].bit);
     }
     log_msg("\n \n");
-    int check = checkBitMapPos(399);
+    int check = checkBitMapPos(742);
     if(check == 0)
     {
 	changeBitMapPos(742);
@@ -360,7 +360,7 @@ int checkBitMapPos(int pos)
    }
 }
 
-void changeBitMapPos(int pos)
+int changeBitMapPos(int pos)
 {
    log_msg("Changing the value of position %d to 1\n", pos);
    test.DataBlockBM[pos].bit = 1;

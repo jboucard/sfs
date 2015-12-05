@@ -45,6 +45,7 @@
  * Changed in version 2.6
  */
 <<<<<<< HEAD
+<<<<<<< HEAD
 
  //   log_msg("SIZES: super block: %d\n inode: %d\n dir_entry %d\n", sizeof(fs_super_block), sizeof(struct fs_inode), sizeof(struct dir_entry));
 
@@ -53,6 +54,9 @@ typedef struct fs_super_block fs_super_block;
 =======
 BitArray test;
 >>>>>>> d336ca6688ddd4b66018650e0f7a7f493400a3d0
+=======
+DataBlockBitMap test;
+>>>>>>> be98881da1ffcd2445c28691c43fd3baba241bf5
 void *sfs_init(struct fuse_conn_info *conn)
 {	
     fs_super_block *super= malloc(sizeof(fs_super_block));
@@ -67,13 +71,12 @@ void *sfs_init(struct fuse_conn_info *conn)
     fprintf(stderr, "in bb-init\n");
     log_msg("\nsfs_init()\n");
 
-     
     for(i=0; i<= DATABLOCKS; i++)
     {
 	log_msg("val of test %d is: %d\n", i, test.DataBlockBM[i].bit);
     }
     log_msg("\n \n");
-    int check = checkBitMapPos(399);
+    int check = checkBitMapPos(742);
     if(check == 0)
     {
 	changeBitMapPos(742);
@@ -407,7 +410,7 @@ int checkBitMapPos(int pos)
    }
 }
 
-void changeBitMapPos(int pos)
+int changeBitMapPos(int pos)
 {
    log_msg("Changing the value of position %d to 1\n", pos);
    test.DataBlockBM[pos].bit = 1;

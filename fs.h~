@@ -11,7 +11,7 @@
 #define INODES 120 
 #define N_BLOCKS 12
 #define DATABLOCKS INODES * N_BLOCKS
-#define NAME_LEN 255
+#define NAME_LEN 235
 
 >>>>>>> d336ca6688ddd4b66018650e0f7a7f493400a3d0
 struct fs_inode {
@@ -45,14 +45,20 @@ struct fs_inode {
 
 struct dir_entry{
 	uint32_t inode; //inode #
+<<<<<<< HEAD
 	uint16_t rec_len;
 <<<<<<< HEAD
 	uint8_t name_len= NAME_LEN; //name length
 =======
+=======
+>>>>>>> be98881da1ffcd2445c28691c43fd3baba241bf5
 	uint8_t name_len; //name length
 >>>>>>> d336ca6688ddd4b66018650e0f7a7f493400a3d0
 	uint8_t file_type;
 	char name[NAME_LEN]; //file name
+	uint32_t parent;
+	uint32_t child;
+	uint32_t subdirs;	
 	};
 
 
@@ -79,6 +85,17 @@ struct fs_super_block {
 <<<<<<< HEAD
 =======
 
+struct fs_group_desc {
+	uint32_t bg_block_bitmap;        //Blocks bitmap block
+        uint32_t bg_inode_bitmap;        //Inodes bitmap block
+        uint32_t bg_inode_table;         //Inodes table block
+        uint16_t bg_free_blocks_count;   //Free blocks count
+        uint16_t bg_free_inodes_count;   //Free inodes count
+        uint16_t bg_used_dirs_count;     //Directories count
+        uint16_t bg_pad;
+        uint32_t bg_reserved[3];
+};
+
 
 struct DataBlockArray {
 	unsigned int bit : 1;
@@ -86,7 +103,11 @@ struct DataBlockArray {
 
 typedef struct {
 	struct DataBlockArray DataBlockBM[DATABLOCKS];
-} BitArray; 
+} DataBlockBitMap; 
+
+typedef struct {
+	struct DataBlockArray InodeBM[INODES];
+} InodeBitMap; 
 
 
 
