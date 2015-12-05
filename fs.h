@@ -7,7 +7,7 @@
 #define INODES 120 
 #define N_BLOCKS 12
 #define DATABLOCKS INODES * N_BLOCKS
-#define NAME_LEN 255
+#define NAME_LEN 235
 
 struct fs_inode {
 	uint16_t  mode; //File Mode
@@ -40,14 +40,17 @@ struct fs_inode {
 
 struct dir_entry{
 	uint32_t inode; //inode #
-	uint16_t rec_len;
 	uint8_t name_len; //name length
 	uint8_t file_type;
 	char name[NAME_LEN]; //file name
+	uint32_t parent;
+	uint32_t child;
+	uint32_t subdirs;	
 	};
 
 
 struct fs_super_block {
+	char mounted[5]; //check if system has been mounted previously "mount"
 	uint32_t s_inodes_count; //Inodes count
 	uint32_t s_blocks_count; //blocks count
 	uint32_t s_r_blocks_count; //reserved blocks count
@@ -68,7 +71,16 @@ struct fs_super_block {
 };
 
 
-
+struct fs_group_desc {
+	uint32_t bg_block_bitmap;        //Blocks bitmap block
+        uint32_t bg_inode_bitmap;        //Inodes bitmap block
+        uint32_t bg_inode_table;         //Inodes table block
+        uint16_t bg_free_blocks_count;   //Free blocks count
+        uint16_t bg_free_inodes_count;   //Free inodes count
+        uint16_t bg_used_dirs_count;     //Directories count
+        uint16_t bg_pad;
+        uint32_t bg_reserved[3];
+};
 
 
 struct DataBlockArray {

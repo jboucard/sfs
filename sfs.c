@@ -54,7 +54,6 @@ void *sfs_init(struct fuse_conn_info *conn)
     fprintf(stderr, "in bb-init\n");
     log_msg("\nsfs_init()\n");
 
-     
     for(i=0; i<= DATABLOCKS; i++)
     {
 	log_msg("val of test %d is: %d\n", i, test.DataBlockBM[i].bit);
