@@ -4,8 +4,6 @@
   This code is derived from function prototypes found /usr/include/fuse/fuse.h
   Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
   His code is licensed under the LGPLv2.
-dwdwwdwda
-dwadd
 */
 
 #include "params.h"
@@ -46,16 +44,55 @@ dwadd
  * Changed in version 2.6
  */
 
+ //   log_msg("SIZES: super block: %d\n inode: %d\n dir_entry %d\n", sizeof(fs_super_block), sizeof(struct fs_inode), sizeof(struct dir_entry));
+
+typedef struct fs_super_block fs_super_block;
+
 void *sfs_init(struct fuse_conn_info *conn)
 {	
+    fs_super_block *super= malloc(sizeof(fs_super_block));
 	
-
     fprintf(stderr, "in bb-init\n");
     log_msg("\nsfs_init()\n");
-    disk_open(rootPath);
-    //c
+    //create a buffer for reading and open the disk
+    void * buf= malloc(BLOCK_SIZE);
+    disk_open(diskFilePath);
+    //write struct to the diskfile
+    //read contents of block into a buffer
+    block_read(1, (void *) buf); 
+    //copy sizeof(superblk) bytes into another struct (test) and display the result)
+    memcpy((void *) super, buf, sizeof(fs_super_block)); 
+    if (super->s_mnt_count <=0)
+    {
+	//first time mounting to this system
+	//initialize data structures accordingly
+
+	//in super:
+	//initialize bitmaps all to 0
+	//initialize blocksize
+	//initialize inodes, blocks, reserved block counts
+	//dont initialize mount count it's done below
+
+	// in group_desc
+	//initialize the block numbers of the bitmaps and first inode table
+	//initialize the number of free blocks, inodes to the total number of each
+	//
+
+	//now write:
+	//don't write superblock it's done below
+	//blockwrite(2, group_desc)
+	//blockwrite(3, DataBlockBitmap)
+	//blockwrite(4, inodeBitmap)
+	//for i<numberOfInodes/3:
+	//blockwrite (5+i , buffer with: inode #'s i*3, i*3+1, i*3+2)
+
+    }
+    super->s_mnt_count++;//add one to the mount count
+
+    block_write(1, (void * ) super);//write an updated initialized superblock to disk
+    log_msg("super->s_mnt_count: %d\n",super->s_mnt_count);
     disk_close();
-     
+
     log_conn(conn);
     log_fuse_context(fuse_get_context());
 
