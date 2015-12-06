@@ -9,6 +9,9 @@
 #define DATABLOCKS INODES * N_BLOCKS
 #define NAME_LEN 235
 
+#define FILE 1
+#define DIR 2
+
 struct fs_inode {
 	uint16_t  mode; //File Mode
 	uint16_t  uid;  //Owner user id
@@ -50,13 +53,12 @@ struct dir_entry{
 
 
 struct fs_super_block {
+	char mounted[5]; //check if system has been mounted previously "mount"
 	uint32_t s_inodes_count; //Inodes count
 	uint32_t s_blocks_count; //blocks count
-	uint32_t s_r_blocks_count; //reserved blocks count
+	uint32_t first_d_block; //first data block
 	uint32_t s_free_blocks_count; //free blocks count
 	uint32_t s_free_inodes_count; //free inodes count
-	uint32_t s_first_data_block; //first data block
-	uint32_t s_log_block_size; //Block Size
 	uint32_t s_log_frag_size; //fragment size
 	uint32_t s_blocks_per_group; //# Blocks per group
 	uint32_t s_frags_per_group; //# fragments per group
@@ -71,30 +73,13 @@ struct fs_super_block {
 
 
 struct fs_group_desc {
-	uint32_t bg_block_bitmap;        //Blocks bitmap block
-        uint32_t bg_inode_bitmap;        //Inodes bitmap block
-        uint32_t bg_inode_table;         //Inodes table block
-        uint16_t bg_free_blocks_count;   //Free blocks count
-        uint16_t bg_free_inodes_count;   //Free inodes count
-        uint16_t bg_used_dirs_count;     //Directories count
-        uint16_t bg_pad;
-        uint32_t bg_reserved[3];
+	uint32_t block_bitmap;        //Blocks bitmap block
+        uint32_t inode_bitmap;        //Inodes bitmap block
+        uint32_t inode_table;         //Inodes table block
+        uint16_t used_dirs_count;     //Directories count
 };
 
-
-struct DataBlockArray {
-	unsigned int bit : 1;
-};
-
-typedef struct {
-	struct DataBlockArray DataBlockBM[DATABLOCKS];
-} DataBlockBitMap; 
-
-typedef struct {
-	struct DataBlockArray InodeBM[INODES];
-} InodeBitMap; 
-
-
+void dirNumToEntry ( int dirNum, dir_entry * d_entry);
 
 
 
