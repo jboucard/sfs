@@ -20,10 +20,10 @@ dwadd
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <stdbool.h>
-
 #ifdef HAVE_SYS_XATTR_H
 #include <sys/xattr.h>
 #endif
@@ -50,11 +50,16 @@ dwadd
 typedef struct fs_super_block super_block;
 typedef struct fs_group_desc group_desc;
 typedef struct dir_entry dir_entry;
+typedef struct fs_inode inode;
+
 super_block *super;
 group_desc * groupdesc;
 dir_entry *root;
+inode * rootInode;
+
 int DataBlockBitMap[DATABLOCKS/32+1]={ 0 };
 int iNodeBitMap[INODES/32+1]={ 0 };
+
 void *sfs_init(struct fuse_conn_info *conn)
 {	
     super= (super_block* ) malloc(sizeof(super_block));
@@ -110,9 +115,51 @@ void *sfs_init(struct fuse_conn_info *conn)
     root->child=0;
     root->subdirs=0;
     //fill out inode for root
+	SetBit(iNodeBitMap,0);
+	//initialize inode for root dir
+	rootInode= (inode *) malloc(sizeof(inode));
+	//rootInode->mode =
+	rootInode->uid=geteuid();
+	rootInode->size=BLOCK_SIZE;
+	time_t t;
+    time(&t);
+	rootInode->ctime= t;
+	rootInode->atime= t;
+	rootInode->mtime= t;
+	//rootInode->mode=USER_R_W;
+	/*
+struct fs_inode {
+	uint16_t  mode; //File Mode
+	uint32_t  size; // size in bytes
+	uint32_t  atime; //last access time
+	uint32_t  ctime; //creation time
+	uint32_t  mtime; //modification time
+	uint32_t  dtime; //deletion time
+	uint16_t  gid;  //low 16 bits of group id (*)
+	uint16_t  links_count; //links count
+	uint32_t  blocks; //blocks count
+	uint32_t  flags; //file flags
+	
+	uint32_t  i_block[N_BLOCKS]; //pointers to blocks 
+	uint32_t generation; //file version
+	uint32_t file_acl; //File Access Control List
+	uint32_t dir_acl; //Directory Access Control List
+	uint32_t faddr;  //fragment address
+
+	uint8_t frag; //fragment number
+	uint8_t fsize; //Fragment Size
+	
+	// The number of the block group which contains this file's inode
+	uint32_t block_group; 
+	
+	pthread_mutex_t lock;
+	
+	};
+	*/
     log_conn(conn);
     log_fuse_context(fuse_get_context());
-
+	
+	disk_close();
     return SFS_DATA;
 }
 
@@ -145,21 +192,28 @@ int sfs_getattr(const char *path, struct stat *statbuf)
 		log_msg("\nPath to dir entry failed in getattr\n");
 		return -1;	
 	}
-    //statbuf->st_ino =  de->inode;
+	log_msg("\nsize of dir_entry%d\n",sizeof(dir_entry));
+	lstat(path, statbuf);
+	
+
+	log_msg("\nst_ino %d st_mode %d st_nlink %d st_atime %d st_ctime %d\n", statbuf->st_ino, statbuf->st_mode, statbuf->st_nlink=1, statbuf->st_atime,statbuf->st_ctime);
+    statbuf->st_ino =  de->inode;
 	statbuf->st_dev=0;
-	statbuf->st_mode=0;
-	statbuf->st_nlink=0;
-	//statbuf->st_uid=de->inode->
+	statbuf->st_mode=(mode_t) (USER_X | USER_W |USER_R |DIR);
+#define USER_R;
+	statbuf->st_nlink=1;
+	statbuf->st_uid=rootInode->uid;
 	statbuf->st_gid=0;
 	statbuf->st_rdev=0;
-	statbuf->st_size;//what do i return for the size if de is a folder?    
+	statbuf->st_size=sizeof(dir_entry);//what do i return for the size if de is a folder?    
 	statbuf->st_blksize=BLOCK_SIZE;
 	
 	statbuf->st_blocks=DATABLOCKS - super->s_free_blocks_count; 
-	statbuf->st_atime=0;
-	statbuf->st_mtime=0;
-	statbuf->st_ctime=0;
-	free(de);
+	statbuf->st_atime=rootInode->atime;
+	statbuf->st_mtime=rootInode->mtime;
+	statbuf->st_ctime=rootInode->ctime;
+	log_msg("\n creation time is : %d",ctime((time_t *)&rootInode->ctime));
+	//free(de);
 	return retstat;
 }
 
@@ -364,7 +418,8 @@ int path_to_dir_entry(const char * path, dir_entry * dirent)
 		{	//if root dir
 			if (name[0]=='/'){
 	    		de=root;
-				log_msg("AM I ROOT");}
+				log_msg("\nroot->inode %d de->inode %d\n",root->inode, de->inode);
+			}
 			else
 			{
 				//if not root then
@@ -392,7 +447,7 @@ int path_to_dir_entry(const char * path, dir_entry * dirent)
 
     } //turn path into d_entry
 	dirent=de;
-	log_msg("dirent->name %s\n", dirent->name);
+	log_msg("dirent->name %s and dirent->inode:%d de->inode%d\n", dirent->name,dirent->inode, de->inode);
 	return 0;
 } 
 

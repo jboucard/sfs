@@ -12,8 +12,26 @@
 #define FILE 1
 #define DIR 2
 
+#define USER_R 1
+#define USER_W 2
+#define USER_X 3
+#define USER_R_W 4
+#define USER_R_X 5
+#define USER_W_X 6
+#define USER_R_W_X 7
+
+#define ALL_R 1
+#define ALL_W 2
+#define ALL_X 3
+#define ALL_R_W 4
+#define ALL_R_X 5
+#define ALL_W_X 6
+#define ALL_R_W_X 7
+
+
 struct fs_inode {
-	uint16_t  mode; //File Mode
+	uint8_t  uRights; //User Rights
+	uint8_t aRights; //All Rights
 	uint16_t  uid;  //Owner user id
 	uint32_t  size; // size in bytes
 	uint32_t  atime; //last access time
@@ -69,6 +87,7 @@ struct fs_super_block {
 	uint16_t s_state; //File system state
 	uint16_t s_def_resuid; //Default uid for reserved blocks
 	uint16_t s_def_resgid; //Default gid for reserved blocks
+
 };
 
 
@@ -79,10 +98,12 @@ struct fs_group_desc {
         uint16_t used_dirs_count;     //Directories count
 };
 
-void dirNumToEntry ( int dirNum, dir_entry * d_entry);
+void dirNumToEntry ( int dirNum, struct dir_entry * d_entry);
 
-
-
+int path_to_dir_entry(const char * path, struct dir_entry * dirent);
+int GetBit( int A[ ],  int k );
+void SetBit( int A[ ],  int k );
+void ClearBit( int A[ ],  int k );
 
 
 #endif
