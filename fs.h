@@ -12,6 +12,23 @@
 #define FILE 1
 #define DIR 2
 
+#define USER_R 1
+#define USER_W 2
+#define USER_X 3
+#define USER_R_W 4
+#define USER_R_X 5
+#define USER_W_X 6
+#define USER_R_W_X 7
+
+#define ALL_R 1
+#define ALL_W 2
+#define ALL_X 3
+#define ALL_R_W 4
+#define ALL_R_X 5
+#define ALL_W_X 6
+#define ALL_R_W_X 7
+
+
 struct fs_inode {
 	uint16_t  mode; //File Mode
 	uint16_t  uid;  //Owner user id
