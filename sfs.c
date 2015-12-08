@@ -61,15 +61,15 @@ int DataBlockBitMap[DATABLOCKS/32+1]={ 0 };
 int iNodeBitMap[INODES/32+1]={ 0 };
 
 void *sfs_init(struct fuse_conn_info *conn)
-{	
+{
+    disk_open(diskFilePath);
     super= (super_block* ) malloc(sizeof(super_block));
     groupdesc= (group_desc * ) malloc(sizeof(group_desc));  
 	root= (dir_entry *) malloc (sizeof(dir_entry));
     char buf[512];
     fprintf(stderr, "in bb-init\n");
-    log_msg("\nsfs_init()\n");
+    log_msg("\nsfs_init() sizeof(mode_t) %d sizeof(uint16_t) %d\n",sizeof(mode_t),sizeof(uint16_t));
 	
-    disk_open(diskFilePath);
      //write struct to the diskfile
     //read contents of block into a buffer and copy them into super block
     block_read(1, (void *) &buf); 
@@ -114,11 +114,12 @@ void *sfs_init(struct fuse_conn_info *conn)
     root->parent=0;//initialize pointer fields to 0
     root->child=0;
     root->subdirs=0;
+	block_write(46, (void *) root);
     //fill out inode for root
 	SetBit(iNodeBitMap,0);
 	//initialize inode for root dir
 	rootInode= (inode *) malloc(sizeof(inode));
-	//rootInode->mode =
+	rootInode->mode =(USER_X | OTHER_R | OTHER_X | USER_W | USER_R |DIR);
 	rootInode->uid=geteuid();
 	rootInode->size=BLOCK_SIZE;
 	time_t t;
@@ -126,40 +127,10 @@ void *sfs_init(struct fuse_conn_info *conn)
 	rootInode->ctime= t;
 	rootInode->atime= t;
 	rootInode->mtime= t;
-	//rootInode->mode=USER_R_W;
-	/*
-struct fs_inode {
-	uint16_t  mode; //File Mode
-	uint32_t  size; // size in bytes
-	uint32_t  atime; //last access time
-	uint32_t  ctime; //creation time
-	uint32_t  mtime; //modification time
-	uint32_t  dtime; //deletion time
-	uint16_t  gid;  //low 16 bits of group id (*)
-	uint16_t  links_count; //links count
-	uint32_t  blocks; //blocks count
-	uint32_t  flags; //file flags
-	
-	uint32_t  i_block[N_BLOCKS]; //pointers to blocks 
-	uint32_t generation; //file version
-	uint32_t file_acl; //File Access Control List
-	uint32_t dir_acl; //Directory Access Control List
-	uint32_t faddr;  //fragment address
+	block_write(5, (void *) rootInode);
 
-	uint8_t frag; //fragment number
-	uint8_t fsize; //Fragment Size
-	
-	// The number of the block group which contains this file's inode
-	uint32_t block_group; 
-	
-	pthread_mutex_t lock;
-	
-	};
-	*/
     log_conn(conn);
     log_fuse_context(fuse_get_context());
-	
-	disk_close();
     return SFS_DATA;
 }
 
@@ -171,7 +142,12 @@ struct fs_inode {
  * Introduced in version 2.3
  */
 void sfs_destroy(void *userdata)
-{
+{	
+	free(super);
+	free(rootInode);
+	free(groupdesc);
+	free(root);
+	disk_close();
     log_msg("\nsfs_destroy(userdata=0x%08x)\n", userdata);
 }
 
@@ -192,14 +168,13 @@ int sfs_getattr(const char *path, struct stat *statbuf)
 		log_msg("\nPath to dir entry failed in getattr\n");
 		return -1;	
 	}
-	log_msg("\nsize of dir_entry%d\n",sizeof(dir_entry));
-	lstat(path, statbuf);
-	
 
-	log_msg("\nst_ino %d st_mode %d st_nlink %d st_atime %d st_ctime %d\n", statbuf->st_ino, statbuf->st_mode, statbuf->st_nlink=1, statbuf->st_atime,statbuf->st_ctime);
+	inode * node= (inode * )malloc(sizeof(inode));
+	numToInode(de->inode, node);
+	
     statbuf->st_ino =  de->inode;
 	statbuf->st_dev=0;
-	statbuf->st_mode=(mode_t) (USER_X | USER_W |USER_R |DIR);
+	statbuf->st_mode=node->mode;
 	statbuf->st_nlink=1;
 	statbuf->st_uid=rootInode->uid;
 	statbuf->st_gid=0;
@@ -208,11 +183,9 @@ int sfs_getattr(const char *path, struct stat *statbuf)
 	statbuf->st_blksize=BLOCK_SIZE;
 	
 	statbuf->st_blocks=DATABLOCKS - super->s_free_blocks_count; 
-	statbuf->st_atime=rootInode->atime;
-	statbuf->st_mtime=rootInode->mtime;
-	statbuf->st_ctime=rootInode->ctime;
-	log_msg("\n creation time is : %d",ctime((time_t *)&rootInode->ctime));
-	//free(de);
+	statbuf->st_atime=node->atime;
+	statbuf->st_mtime=node->mtime;
+	statbuf->st_ctime=node->ctime;
 	return retstat;
 }
 
@@ -446,7 +419,6 @@ int path_to_dir_entry(const char * path, dir_entry * dirent)
 
     } //turn path into d_entry
 	dirent=de;
-	log_msg("dirent->name %s and dirent->inode:%d de->inode%d\n", dirent->name,dirent->inode, de->inode);
 	return 0;
 } 
 
@@ -454,26 +426,31 @@ int path_to_dir_entry(const char * path, dir_entry * dirent)
 int sfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
 	       struct fuse_file_info *fi)
 {
+	
+	log_msg("\nbeginning of readdir\n");
     int retstat = 0;
-    dir_entry *de;
-	dir_entry *copy;
+    dir_entry *de=(dir_entry *)malloc(sizeof (dir_entry));
+	dir_entry *copy=(dir_entry *)malloc(sizeof (dir_entry));
 	//turn path into d_entry
-	if (path_to_dir_entry(path,de)==-1)
+	if (path_to_dir_entry(path,de)!=0)
 		return -1;
-
     /*de now equals the d_entry that corresponds to the passed path*/
 
     //loop through d_entries in path and call filler funciton on their names
-	if(de->subdirs==0)
+	if(de->subdirs==0){
+		
 		return retstat;
-	dirNumToEntry(de->subdirs,copy);		
+	}
+	dirNumToEntry(de->subdirs,copy);	
 	while(copy->name != de->name)
 	{
 		if( filler(buf, copy->name, NULL, 0)==0)
 			return 0;
 		dirNumToEntry(copy->child, copy);
 	}   	    
-    
+	free(de);
+	free(copy);
+    log_msg("\nend of readdir\n");
     return retstat;
 }
 
@@ -517,9 +494,7 @@ void sfs_usage()
 //pass a directory number, fill passed dir_entry with corresponding struct
 void dirNumToEntry ( int dirNum, dir_entry * d_entry)
 {
-	disk_open(diskFilePath);
 	char * buf[BLOCK_SIZE];
-	//if(filetype==DIR)
 	if (dirNum%2==0)
 	{
 		block_read(47+(dirNum/2), buf);
@@ -530,10 +505,38 @@ void dirNumToEntry ( int dirNum, dir_entry * d_entry)
 		block_read(47+(dirNum/2), buf);
 		memcpy(d_entry, buf+sizeof(dir_entry), sizeof(dir_entry)); //double check if you get errors
 	}
-	disk_close();
+	log_msg("\nEnd of dirNumToEntry\n");
+}
+int numToInode(int num, inode * node)
+{	
+
+	char buf[512];
+	if (GetBit(iNodeBitMap, num)==0)
+	{
+		log_msg("The inode: %d is not set",num);
+		return -1;
+	}
+
+	if (block_read(5+num/3, (void *) &buf)==-1)
+	{
+		log_msg("\nblock_read() failed in numToInode returned -1\n");
+		exit(0);
+	}
+	if (num%3==0){
+		memcpy((void *) node,  &buf, sizeof(inode) ); 
+		log_msg("\nfirst if\n");	
+	}
+	if (num%3==1){
+		memcpy((void *) node,  &buf[sizeof(struct fs_inode)-1] , sizeof(inode));
+		log_msg("\nsecond if\n");	
+	}
+	if (num%3==2){
+		memcpy((void *) node, &buf[2*sizeof(struct fs_inode)-1], sizeof(inode));
+		log_msg("\tthird if\n");	
+	}		
+	return 0;
 	
 }
-
 
   int GetBit( int A[ ],  int k )
    {
@@ -554,11 +557,10 @@ int main(int argc, char *argv[])
 {
     int fuse_stat;
     struct sfs_state *sfs_data;
-    
     // sanity checking on the command line
     if ((argc < 3) || (argv[argc-2][0] == '-') || (argv[argc-1][0] == '-'))
 	sfs_usage();
-
+	
     sfs_data = malloc(sizeof(struct sfs_state));
     if (sfs_data == NULL) {
 	perror("main calloc");

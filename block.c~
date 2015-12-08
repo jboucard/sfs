@@ -13,20 +13,21 @@
 #include <sys/stat.h>
 
 #include "block.h"
-#include "log.h"
+
 int diskfile = -1;
 
 void disk_open(const char* diskfile_path)
 {
+	log_msg("\nopening Diskfile\n");
     if(diskfile >= 0){
 	return;
     }
-    log_msg("\nIN disk_open() diskfile: %d\n", diskfile);
+    
     diskfile = open(diskfile_path, O_CREAT|O_RDWR, S_IRUSR|S_IWUSR);
-    log_msg("\nafter open call, diskfile: %d\n",diskfile);
+	log_msg("\ndisk_open success %d\n",diskfile);
     if (diskfile < 0) {
+	log_msg("\ndisk_open failed\n");
 	perror("disk_open failed");
-	log_msg("\n we exit\n?");
 	exit(EXIT_FAILURE);
     }
 }
@@ -34,6 +35,7 @@ void disk_open(const char* diskfile_path)
 void disk_close()
 {
     if(diskfile >= 0){
+	log_msg("\nclosing disk\n");
 	close(diskfile);
     }
 }

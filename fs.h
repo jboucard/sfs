@@ -9,6 +9,7 @@
 #define DATABLOCKS INODES * N_BLOCKS
 #define NAME_LEN 235
 
+//FILE MODES
 #define FILE 0x8000
 #define DIR 0x4000
 
@@ -20,8 +21,7 @@
 #define USER_R 0x100
 
 struct fs_inode {
-	uint8_t  uRights; //User Rights
-	uint8_t aRights; //All Rights
+	mode_t    mode; //File Mode
 	uint16_t  uid;  //Owner user id
 	uint32_t  size; // size in bytes
 	uint32_t  atime; //last access time
@@ -94,6 +94,6 @@ int path_to_dir_entry(const char * path, struct dir_entry * dirent);
 int GetBit( int A[ ],  int k );
 void SetBit( int A[ ],  int k );
 void ClearBit( int A[ ],  int k );
-
+int numToInode(int num, struct fs_inode * node);
 
 #endif

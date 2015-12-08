@@ -18,6 +18,7 @@ int diskfile = -1;
 
 void disk_open(const char* diskfile_path)
 {
+	log_msg("\nopening Diskfile\n");
     if(diskfile >= 0){
 	return;
     }
@@ -32,6 +33,7 @@ void disk_open(const char* diskfile_path)
 void disk_close()
 {
     if(diskfile >= 0){
+	log_msg("\nclosing disk\n");
 	close(diskfile);
     }
 }
