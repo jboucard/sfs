@@ -94,6 +94,6 @@ int path_to_dir_entry(const char * path, struct dir_entry * dirent);
 int GetBit( int A[ ],  int k );
 void SetBit( int A[ ],  int k );
 void ClearBit( int A[ ],  int k );
-int numToInode(int num, struct fs_inode * inode);
+int numToInode(int num, struct fs_inode * node);
 
 #endif

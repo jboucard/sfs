@@ -54,9 +54,9 @@ struct dir_entry{
 	uint8_t name_len; //name length
 	uint8_t file_type;
 	char name[NAME_LEN]; //file name
-	uint32_t parent;
-	uint32_t child;
-	uint32_t subdirs;	
+	uint32_t parent;//dir_entry number for parent directory
+	uint32_t child;//dir_entry number for the next child in parent directory
+	uint32_t subdirs;//dir_entry number for the first child in this directory	
 	};
 
 

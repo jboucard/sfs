@@ -111,6 +111,7 @@ void *sfs_init(struct fuse_conn_info *conn)
     root->inode=0;//give root the first INODE
     root->file_type=DIR; //set root type to a directory
     memmove(root->name, (void *) "/", 1); //set name to "/"
+	root->name_len=1;
     root->parent=0;//initialize pointer fields to 0
     root->child=0;
     root->subdirs=0;
@@ -119,7 +120,7 @@ void *sfs_init(struct fuse_conn_info *conn)
 	SetBit(iNodeBitMap,0);
 	//initialize inode for root dir
 	rootInode= (inode *) malloc(sizeof(inode));
-	rootInode->mode =(USER_X | OTHER_R | OTHER_X | USER_W | USER_R |DIR);
+	rootInode->mode =(USER_X | OTHER_W |OTHER_R | OTHER_X | USER_W | USER_R |DIR);
 	rootInode->uid=geteuid();
 	rootInode->size=BLOCK_SIZE;
 	time_t t;
@@ -163,29 +164,40 @@ int sfs_getattr(const char *path, struct stat *statbuf)
     char fpath[PATH_MAX];
     log_msg("\nsfs_getattr(path=\"%s\", statbuf=0x%08x)\n",
 	  path, statbuf);
+	statbuf->st_blksize=BLOCK_SIZE; 
+	statbuf->st_blocks=DATABLOCKS - super->s_free_blocks_count; 
+	statbuf->st_dev=0;
+	statbuf->st_rdev=0;
+	statbuf->st_uid=geteuid();
+	statbuf->st_gid=0;
+	statbuf->st_atime=0;
+	statbuf->st_mtime=0;
+	statbuf->st_ctime=0;
+	statbuf->st_ino=0;
+	statbuf->st_nlink=0;
+	statbuf->st_size=0;
+	statbuf->st_mode=0;
 	dir_entry * de=(dir_entry*) malloc(sizeof(dir_entry));
     if (path_to_dir_entry(path, de)==-1){
-		log_msg("\nPath to dir entry failed in getattr\n");
-		return -1;	
+		log_msg("\nPath to dir entry failed in getattr");
+		errno= -ENOENT;
+		return -ENOENT;	
 	}
-
+	
 	inode * node= (inode * )malloc(sizeof(inode));
 	numToInode(de->inode, node);
-
+	
     statbuf->st_ino =  de->inode;
-	statbuf->st_dev=0;
 	statbuf->st_mode=node->mode;
 	statbuf->st_nlink=1;
 	statbuf->st_uid=rootInode->uid;
 	statbuf->st_gid=0;
 	statbuf->st_rdev=0;
 	statbuf->st_size=sizeof(dir_entry);//what do i return for the size if de is a folder?    
-	statbuf->st_blksize=BLOCK_SIZE;
-	
-	statbuf->st_blocks=DATABLOCKS - super->s_free_blocks_count; 
-	statbuf->st_atime=(*de->inode)->atime;
-	statbuf->st_mtime=de->inode->mtime;
-	statbuf->st_ctime=de->inode->ctime;
+	statbuf->st_blksize=BLOCK_SIZE; 
+	statbuf->st_atime=node->atime;
+	statbuf->st_mtime=node->mtime;
+	statbuf->st_ctime=node->ctime;
 	return retstat;
 }
 
@@ -203,13 +215,82 @@ int sfs_getattr(const char *path, struct stat *statbuf)
  */
 int sfs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 {
+	log_msg("\nsfs_create\n");
+	//write an inode and dir_entry 
+	int i=0;	
+	int num=0;
+	for (i=0; i<INODES;i++)
+	{
+		if(GetBit(iNodeBitMap,i)==0)
+		{
+			num=i;
+			break;
+		}
+	}
+	
+	log_msg("\nbeginning %d\n",mode);
+	SetBit(iNodeBitMap,num);
+	time_t seconds;
+	seconds=time(NULL);
+	inode * newnode=malloc(sizeof(inode));
+	newnode->mode=mode;
+	newnode->uid=geteuid();
+	newnode->size=0;
+	newnode->atime= seconds;
+	newnode->ctime= seconds;
+	newnode->mtime= seconds;
+	newnode->gid=0;
+	newnode->links_count=1;
+	newnode->blocks=0;
+	newnode->flags=0;
+	newnode->block_group=0;
+	log_msg("\nbefore first read %d\n",mode);
+	char buf[512];	
+	log_msg("\nfirst read %d\n",block_read(5 +num/3, &buf));
+	log_msg("\nwhich if: %d\n", num%3);
+	if (num%3==0){
+		memcpy((void*)buf,newnode,sizeof(inode));
+		block_write(5+num/3, (void *) &buf);
+	}
+	if (num%3==1){
+		memcpy((void*) buf + sizeof(inode),newnode,sizeof(inode));
+		log_msg("\nnot the blockwrite\n");		
+		block_write(5+num/3, &buf);    
+	}
+	if (num%3==2){
+		memcpy((void*)buf + sizeof(inode)*2,newnode,sizeof(inode));
+		block_write(5+num/3, &buf);    
+	}
+	
+	
+	log_msg("\nmode_t mode %d\n",mode);
     int retstat = 0;
     log_msg("\nsfs_create(path=\"%s\", mode=0%03o, fi=0x%08x)\n",
 	    path, mode, fi);
     
-    
+	dir_entry *new_entry=malloc(sizeof(dir_entry));
+	new_entry->inode=num;
+	new_entry->parent=0;
+	new_entry->child=0;
+	new_entry->name_len=6;
+	memcpy((void*) new_entry->name, "hello/",sizeof("hello/"));
+	//new_entry->name="hello/";
+	block_read(47+num/2, &buf);
+    if (num%2==0)
+	{
+		memcpy((void *) buf,new_entry,sizeof(dir_entry));
+		block_write(47+num/2, &buf);
+	}
+	if (num%2==1)
+	{
+		memcpy((void *) buf+sizeof(dir_entry),new_entry,sizeof(dir_entry));
+		block_write(47+num/2, &buf);
+	}
+	log_msg("\nend of create!\n");
+
     return retstat;
 }
+
 
 /** Remove a file */
 int sfs_unlink(const char *path)
@@ -386,36 +467,44 @@ int path_to_dir_entry(const char * path, dir_entry * dirent)
 		name[namelen]= path[i];
 		namelen++;
 		
-		if (path[i]=='/')
+		if (path[i]=='/'||i==strlen(path)-1)
 		{	//if root dir
-			if (name[0]=='/'){
+			if (name[0]=='/')
+			{
 	    		de=root;
 				log_msg("\nroot->inode %d de->inode %d\n",root->inode, de->inode);
+				namelen=0;
 			}
 			else
 			{
+log_msg("\nbefore while loop\n");
 				//if not root then
- 
-				dirNumToEntry (de->subdirs, copy);//fill copy with first child of de
-				while (!strncmp(name, copy->name, namelen-1))
+ 				dirNumToEntry (de->subdirs, copy);//fill copy with first child of de
+				log_msg("\nbefore while loop after dirnumtoentry strlen: %d\n", copy.name_len);
+				while (copy->name_len != namelen ||!strncmp(name, copy->name, namelen))
 				{	
+					//if (strlen(copy->name)<length)
+					//	length=strlen(copy->name)-1;
+					log_msg("\nin while loop\n");
 					dirNumToEntry(copy->child, copy);
-
+					
 					if (strcmp(copy->name, de->name))
 					{
 						return -1;//looped through d_entries. can't find match 
 					}
 				}
+log_msg("\nafter while loop\n");
 				de=copy;
 			}
 			
-			namelen=0;
-		}
+		
+		}/*
 		else if (i==strlen(path)-1)
 		{
+			
 			log_msg("path[i]: %c\n",path[i]);
 			return -1;
-		}
+		}*/
 
     } //turn path into d_entry
 	dirent=de;
@@ -495,6 +584,11 @@ void sfs_usage()
 void dirNumToEntry ( int dirNum, dir_entry * d_entry)
 {
 	char * buf[BLOCK_SIZE];
+	if (dirNum==0)
+	{
+		log_msg("\ncase is root\n");
+		d_entry=root;
+	}
 	if (dirNum%2==0)
 	{
 		block_read(47+(dirNum/2), buf);
