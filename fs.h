@@ -2,7 +2,7 @@
 #define _FS_H_
 
 
-#define diskFilePath "/.autofs/ilab/ilab_users/jmk480/Desktop/assignment2/example/testfsfile"
+#define diskFilePath "/.autofs/ilab/ilab_users/jab809/Desktop/assignment2/example/testfsfile"
 
 #define INODES 120 
 #define N_BLOCKS 12

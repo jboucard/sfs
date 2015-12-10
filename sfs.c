@@ -128,8 +128,9 @@ void *sfs_init(struct fuse_conn_info *conn)
 	rootInode->ctime= t;
 	rootInode->atime= t;
 	rootInode->mtime= t;
-	block_write(5, (void *) rootInode);
 
+	block_write(5, (void *) rootInode);
+	log_msg("\ninit root check root->name %s\n",root->name);
     log_conn(conn);
     log_fuse_context(fuse_get_context());
     return SFS_DATA;
@@ -144,10 +145,10 @@ void *sfs_init(struct fuse_conn_info *conn)
  */
 void sfs_destroy(void *userdata)
 {	
-	free(super);
+	/*free(super);
 	free(rootInode);
 	free(groupdesc);
-	free(root);
+	free(root);*/
 	disk_close();
     log_msg("\nsfs_destroy(userdata=0x%08x)\n", userdata);
 }
@@ -273,8 +274,8 @@ int sfs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	new_entry->parent=0;
 	new_entry->child=0;
 	new_entry->name_len=6;
-	memcpy((void*) new_entry->name, "hello/",sizeof("hello/"));
-	//new_entry->name="hello/";
+	memcpy((void*) new_entry->name, "hello",sizeof("hello"));
+	//new_entry->name="hello";
 	block_read(47+num/2, &buf);
     if (num%2==0)
 	{
@@ -286,6 +287,33 @@ int sfs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 		memcpy((void *) buf+sizeof(dir_entry),new_entry,sizeof(dir_entry));
 		block_write(47+num/2, &buf);
 	}
+	
+	//gets pathname of parent from path
+	//turns pathanme into d_entry
+	//sets de_ntry ->subdirs = this Directory #
+	//set
+	char * parent = (char *)malloc(100*sizeof(char));
+	char * tempchar = (char *)malloc(100*sizeof(char));
+	strncat(parent,path,1);
+	for (i=1; i<strlen(path); i++)
+    {
+		if (path[i] !='/')
+			strncat(tempchar,path+i,1);
+		if (path[i] == '/')
+		{
+			strcat(parent,tempchar);
+			tempchar = NULL;
+			strcat(parent, (char *) '/');
+		}
+	}
+	log_msg("\nparent name:%s| full path name: %s\n", parent, path);
+	dir_entry *parent_entry=malloc(sizeof(dir_entry));
+	path_to_dir_entry(parent, parent_entry);
+	parent_entry->subdirs = num;
+	new_entry-> child = parent_entry->inode;
+	
+	
+	
 	log_msg("\nend of create!\n");
 
     return retstat;
@@ -452,8 +480,8 @@ int sfs_opendir(const char *path, struct fuse_file_info *fi)
 int path_to_dir_entry(const char * path, dir_entry * dirent)
 {
 	dir_entry *de;
-	dir_entry *copy;
-	
+	dir_entry *copy =(dir_entry *) malloc(sizeof(dir_entry));
+
     //example /a/b/c/
     //delete first slash(root directory) 
     //get up to & including next slash (a/)
@@ -472,7 +500,7 @@ int path_to_dir_entry(const char * path, dir_entry * dirent)
 			if (name[0]=='/')
 			{
 	    		de=root;
-				log_msg("\nroot->inode %d de->inode %d\n",root->inode, de->inode);
+				log_msg("\nroot->inode %s de->inode %s\n",root->name, de->name);
 				namelen=0;
 			}
 			else
@@ -481,13 +509,18 @@ log_msg("\nbefore while loop\n");
 				//if not root then
  				dirNumToEntry (de->subdirs, copy);//fill copy with first child of de
 				log_msg("\nbefore while loop after dirnumtoentry strlen: %d\n", copy->name_len);
+				int i=0;
 				while (copy->name_len != namelen ||!strncmp(name, copy->name, namelen))
 				{	
 					//if (strlen(copy->name)<length)
 					//	length=strlen(copy->name)-1;
 					log_msg("\nin while loop\n");
 					dirNumToEntry(copy->child, copy);
+					log_msg("\ncount: %d copy->child: %d copy->name: %s name: %s\n  de->name: %s",i,copy->child,copy->name, name, de->name);
+					i++;
 					
+					if (i==20)
+						return -1;
 					if (strcmp(copy->name, de->name))
 					{
 						return -1;//looped through d_entries. can't find match 
@@ -496,7 +529,7 @@ log_msg("\nbefore while loop\n");
 log_msg("\nafter while loop\n");
 				de=copy;
 			}
-			
+			log_msg("\noutside conditional\n");
 		
 		}/*
 		else if (i==strlen(path)-1)
@@ -582,24 +615,28 @@ void sfs_usage()
 }
 //pass a directory number, fill passed dir_entry with corresponding struct
 void dirNumToEntry ( int dirNum, dir_entry * d_entry)
-{
+{		//	irNumToEntry(copy->child, copy);
 	char * buf[BLOCK_SIZE];
+	log_msg("\n!!!! root-name: %s \n", root->name);
 	if (dirNum==0)
 	{
 		log_msg("\ncase is root\n");
 		d_entry=root;
 	}
-	if (dirNum%2==0)
+	else if (dirNum%2==0&&dirNum!=0)
 	{
+		log_msg("\nentering block 2\n");
 		block_read(47+(dirNum/2), buf);
 		memcpy(d_entry, buf, sizeof(dir_entry));
 	}
 	else
 	{
+		log_msg("\nentering block 3\n");
 		block_read(47+(dirNum/2), buf);
 		memcpy(d_entry, buf+sizeof(dir_entry), sizeof(dir_entry)); //double check if you get errors
 	}
-	log_msg("\nEnd of dirNumToEntry\n");
+	
+	log_msg("\nEnd of dirNumToEntry d_entry->name:%s root->name: %s\n",d_entry->name, root->name);
 }
 int numToInode(int num, inode * node)
 {	
